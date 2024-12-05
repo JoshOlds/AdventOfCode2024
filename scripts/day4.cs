@@ -1,3 +1,15 @@
+/// High level concept for Day4 was to use RegEx to find all the instances of XMAS or SAMX in strings.
+/// For this to work in all orientations, we need to make strings for horizontal, vertical, and both diagonal line directions.
+/// After creating these strings, simply count the number of matches from the RegEx.
+///
+/// This fell apart for part two - where you need to check MAS or SAM that form an X shape.
+/// The new concept was to check the diagonal strings for any MAS or SAM found, then store the coordinate of the center 'A'.
+/// If a match is found in the 'diagonal right' list and has the same coordiate as a match in the 'diagonal left' list, then
+/// they must share a center 'A' character and form a cross.
+/// Problem is - after parsing, the diagonal lists are not in a coordinate system that match the original 140x140 grid,
+/// so it is hard to compare them. Part 2 required me to make a conversion from the diagonal coordinate system to the
+/// original coordinate system. This was slow to put together, but worked on the first try!
+
 using Godot;
 using System;
 using System.Collections.Generic;
