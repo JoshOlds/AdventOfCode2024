@@ -1,19 +1,25 @@
+// High level concept for the day is to create a Dictionary (Map) for every number (key) that has a rule. The values in the dictionary
+// will be two lists (HashSet) - one list will be the numbers that must come before the key number, and the
+// other list is numbers that must come after the key number. ('before numbers' and 'after number)'
+// To evaluate if a list of pages is valid, iterate through the list. For each number, look up the entry for that number
+// in the rules dictionary (by key), and get the list of 'before numbers' and 'after numbers' for that key.
+// Check that these numbers do indeed only come before or after the current key number in the list of pages.
+
+// For Part 2, my approach was to iterate through the list of pages and evaluate the 'before numbers' and 
+// 'after numbers' (as done in part 1). The difference, however, is when we find a number that breaks the rule, that 
+// number is immediately moved in the list to no longer break the rule (delete and insert it either before or after the 
+// current number, depending on the rule). 
+// The danger here is that we are manipulating a list while iterating through it. To protect ourselves, I set this function
+// up to recurse after making a single edit. This ensures that we iterate through the list fresh after every edit, rather
+// than continuing to iterate after making a modification. We recurse until no more rules are broken and the list should 
+// now be in a fixed state.
+
 using Godot;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 
-struct RulePair
-{
-	public RulePair(int beforeNumber, int afterNumber)
-	{
-		this.beforeNumber = beforeNumber;
-		this.afterNumber = afterNumber;
-	}
-	public int beforeNumber;
-	public int afterNumber;
-}
-
+/// A set of rules that dictate numbers that must come before and after the number that this rule belongs to.
 struct NumberRule
 {
 	public NumberRule()
@@ -21,18 +27,22 @@ struct NumberRule
 		numbersThatComeBefore = new HashSet<int>();
 		numbersThatComeAfter = new HashSet<int>();
 	}
+	/// A HashSet (unique list) of all numbers that must come before the number that this rule belongs to.
 	public HashSet<int> numbersThatComeBefore;
+	/// A HashSet (unique list)  of all numbers that must come after the number that this rule belongs to.
 	public HashSet<int> numbersThatComeAfter;
 }
 
 public partial class day5 : Node
 {
+	/// Dictionary that associates a NumberRule with a single numeric key. 
 	private Dictionary<int, NumberRule> ruleDict;
 	private List<List<int>> invalidPages;
 
 	// Called when the node enters the scene tree for the first time.
 	public override void _Ready()
 	{
+		// Initialize lists and dicts
 		ruleDict = new Dictionary<int, NumberRule>();
 		invalidPages = new List<List<int>>();
 		
@@ -70,6 +80,7 @@ public partial class day5 : Node
 		GD.Print(sum);
 	}
 
+	/// Iterate through the rules in the puzzle input and create entries into the ruleDict.
 	private void PopulateNumberRuleDictionary()
 	{
 		string rulesString = GetPuzzleRules();
@@ -82,6 +93,7 @@ public partial class day5 : Node
 		}
 	}
 
+	/// For every given pair of numbers, this function will make two entries into the rulesDict. One for each number as the key.
 	private void AddToRuleDict(int beforeNumber, int afterNumber)
 	{
 		// Create the Dictionary entry if a rule does not already exist for this number
@@ -90,7 +102,7 @@ public partial class day5 : Node
 			NumberRule newRule = new NumberRule();
 			ruleDict.Add(beforeNumber, newRule);
 		}
-		// Add the new after number to the rule HashSet
+		// Add the new 'after number' to the rule HashSet
 		NumberRule beforeRule = ruleDict[beforeNumber];
 		beforeRule.numbersThatComeAfter.Add(afterNumber);
 		
@@ -105,6 +117,7 @@ public partial class day5 : Node
 		afterRule.numbersThatComeBefore.Add(beforeNumber);
 	}
 
+	/// Evaluates if a list of pages is valid based on the puzzle input rules. If so, returns the middle value of the list.
 	private int evaluatePageRules(List<int> pages)
 	{
 		bool validPageOrder = true;
@@ -139,37 +152,37 @@ public partial class day5 : Node
 		return pages[pages.Count / 2]; // Middle page number
 	}
 
+	/// Recursive function that moves list items in-place to fix rule violations
 	private void FixInvalidPages(List<int> invalidPages)
 	{
-		bool correctionMade = false; // Track if we made a change to the order, we will recurse if we have
 		for (int i = 0; i < invalidPages.Count; i++)
 		{
 			int pageNumber = invalidPages[i];
-			if (ruleDict.ContainsKey(pageNumber) == false) continue;
+			if (ruleDict.ContainsKey(pageNumber) == false) continue; // Move on if no rules exist for this number
 			
 			List<int> previousPages = GetPreviousPages(invalidPages, i);
 			List<int> followingPages = GetFollowingPages(invalidPages, i);
 			NumberRule rule = ruleDict[pageNumber];
 			
-			// Find and move any page that 
+			// Find and move any page that should come before, but is found in the followingPages list
 			foreach (int beforeNumber in rule.numbersThatComeBefore)
 			{
 				if (followingPages.Contains(beforeNumber))
 				{
 					invalidPages.Remove(beforeNumber);
-					invalidPages.Insert(i, beforeNumber);
-					FixInvalidPages(invalidPages);
+					invalidPages.Insert(i, beforeNumber); // Move the number before our current index
+					FixInvalidPages(invalidPages); // !! Recurse !!
 					return;
 				}
 			}
-			// Check if any pages that must come after are in the previous list (invalid)
+			// Find and move any page that should come after, but is found in the previousPages list
 			foreach (int afterNumber in rule.numbersThatComeAfter)
 			{
 				if (previousPages.Contains(afterNumber))
 				{
 					invalidPages.Remove(afterNumber);
-					invalidPages.Insert(i + 1, afterNumber);
-					FixInvalidPages(invalidPages);
+					invalidPages.Insert(i + 1, afterNumber); // Move the number after our current index
+					FixInvalidPages(invalidPages); // !! Recurse !!
 					return;
 				}
 			}
