@@ -1,7 +1,23 @@
+// The core concept for this day is to create a 2D array of PuzzleTile objects that track state of each tile on the 'map'.
+// These PuzzleTile objects will track how many times each tile has been traversed, and if there is an obstacle at that tile.
+// A Guard object is also created that tracks its own position and heading, and has functions to step forward or rotate.
+// Once all these functions are in place, simply run a simulation that steps the guard forward or rotates based on map obstacles.
+// Continue this loop until the guard eventually attempts to step out of the map boundaries!
+
+// Part 2 was a surprise, and I didn't initially feel that my 'Map as object' and Guard simulation method was going to work.
+// However, I realized that you can detect a loop if any map tile is traveres IN THE SAME DIRECTION more than once.
+// I added fields to the PuzzleTile class that tracks what direction it has been traversed, and as the guard walks over
+// the tiles, this new field is updated. Added a check when peeking the next tile to see if it has already been traversed
+// in this direction.
+// Now we can detect loops, the next thing to do is literally brute-force try every map permutation to see if there is a loop.
+// This is an extremely expensive way to do it, since we are running the Guard walking sim for every map! It took about 3 minutes
+// to run all mutations, but it worked!
+
 using Godot;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+
 
 struct Coord
 {
@@ -21,6 +37,9 @@ struct Coord
     public int Y;
 }
 
+/// <summary>
+/// Wrap up statistics about tile traversal in a nice struct.
+/// </summary>
 struct TraverseStats
 {
     public TraverseStats()
@@ -32,6 +51,9 @@ struct TraverseStats
     public int TotalTraverseCount;
 }
 
+/// <summary>
+/// Represents a single Map Tile with metadata about obstacles and visit counts and direction.
+/// </summary>
 class PuzzleTile
 {
     public PuzzleTile(bool obstacle)
@@ -50,6 +72,9 @@ class PuzzleTile
     public Dictionary<GuardAgent.Direction, bool> DirectionVisited;
 }
 
+/// <summary>
+/// A 2D map of PuzzleTiles. Used to represent the puzzle input in memory with some metadata.
+/// </summary>
 class PuzzleMap
 {
     public PuzzleMap(int xDimension, int yDimension)
@@ -65,6 +90,9 @@ class PuzzleMap
     public GuardAgent Guard;
 }
 
+/// <summary>
+/// Guard object with methods to step through the map and rotate.
+/// </summary>
 class GuardAgent
 {
     public enum Direction
@@ -158,6 +186,10 @@ public partial class day6 : Node
 
     }
 
+    /// <summary>
+    /// Creates a PuzzleMap from the puzzle input data.
+    /// </summary>
+    /// <returns></returns>
     private PuzzleMap GeneratePuzzleMap()
     {
         string input = GetPuzzleInput();
@@ -191,7 +223,11 @@ public partial class day6 : Node
         return map;
     }
 
-    /// Returns true if finished successfully, false if stuck in a loop
+    /// <summary>
+    /// Runs a Guard simulation to walk the guard through the map. Loops until either an infinite loop is detected or the Guard leaves the map.
+    /// </summary>
+    /// <param name="map"></param>
+    /// <returns></returns>
     private bool WalkMap(PuzzleMap map)
     {
         while (true)
@@ -225,6 +261,11 @@ public partial class day6 : Node
         }
     }
 
+    /// <summary>
+    /// Evaluates a completed map (already walked) and returns stats regarding tile traversal.
+    /// </summary>
+    /// <param name="map"></param>
+    /// <returns></returns>
     private TraverseStats GetTraverseStats(PuzzleMap map)
     {
         TraverseStats stats = new TraverseStats();
@@ -243,8 +284,6 @@ public partial class day6 : Node
 
         return stats;
     }
-    
-    //private int EvaluateForLoops
 
     public string GetPuzzleInput()
     {
